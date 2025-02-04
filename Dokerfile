@@ -1,0 +1,38 @@
+# ---- Stage 1: Build the application (optional) ----
+# Uncomment the following stage if you want the image to build your app from source.
+# If you already build your JAR locally and want to simply copy it in,
+# you can skip this stage.
+
+# FROM maven:3.8.6-openjdk-17 AS builder
+# WORKDIR /app
+# # Copy only the pom.xml and download dependencies (to leverage caching)
+# COPY pom.xml .
+# RUN mvn dependency:go-offline -B
+# # Copy the source code and build the JAR
+# COPY src ./src
+# RUN mvn clean package -DskipTests
+
+# ---- Stage 2: Create the runtime image ----
+FROM openjdk:17-jdk-alpine
+
+# Create a non-root user (optional, but recommended for security)
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Create a directory for the application
+WORKDIR /app
+
+# Copy the built JAR from the previous stage or from your local build.
+# If you built in Stage 1, uncomment the following:
+# COPY --from=builder /app/target/*.jar app.jar
+
+# If you already built the JAR locally, ensure the JAR is in the same directory as this Dockerfile
+COPY target/*.jar app.jar
+
+# Expose the port your application listens on
+EXPOSE 8080
+
+# Run the application as the non-root user (optional)
+USER appuser
+
+# Set the entrypoint to run your Spring Boot app
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
